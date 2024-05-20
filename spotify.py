@@ -28,7 +28,7 @@ class spotify_api:
         #print(token)
         return token
     
-    def get_track_info(self, id):
+    async def get_track_info(self, id):
         header = {
             "Authorization": f"Bearer {self.token}"
         }

@@ -9,7 +9,7 @@ import json
 
 intents = discord.Intents.default()
 intents.voice_states = True
-
+spotify_api = spotify_api()
 bot = commands.Bot(command_prefix='$', intents=intents)
 bot_manager = bot_manager()
 @bot.command()
@@ -23,13 +23,30 @@ async def manage_bot(ctx):
     bot_manager.print_all_instances()
     await ctx.send(f"Bot instance for this guild: {music_bot}")
 
+@bot.command()
+async def play_spotify(ctx, *, spotify_url):
+    guild = ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot(guild)
+    await music_bot.add_to_queue(ctx, spotify_url)
+    bot_manager.print_all_instances()
+@bot.command()
+async def debug_queue(ctx):
+    guild = ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot(guild)
+    await ctx.send(f"Queue: {music_bot.queue}")
 
+
+    
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
-#spotify_api = spotify_api()
-#youtube_api = youtube_api()
 #@bot.command()
 #async def play_spotify(ctx, *, spotify_url):
 #    # Check if the user is in a voice channel
