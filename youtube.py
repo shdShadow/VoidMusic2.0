@@ -1,15 +1,18 @@
 import yt_dlp
-class youtube_api:
-    
+import asyncio
 
-    async def get_track_url(query):
-        ydl_opts = {
-        'format': 'bestaudio/best',
-        'noplaylist': True,
-        'default_search': 'ytsearch',
-        'quiet': True,
+class youtube_api:
+    def __init__(self):
+        self.ydl_opts = {
+            'format': 'bestaudio/best',
+            'noplaylist': True,
+            'default_search': 'ytsearch',
+            'quiet': True,
         }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(query, download=False)
-            video_url = info_dict['entries'][0]['webpage_url']
-            return video_url
+
+    async def get_track_url(self, query):
+        loop = asyncio.get_event_loop()
+        info_dict = await loop.run_in_executor(None, lambda: yt_dlp.YoutubeDL(self.ydl_opts).extract_info(query, download=False))
+        video_url = info_dict['entries'][0]['webpage_url']
+        audio_url = info_dict['entries'][0]['url']
+        return video_url, audio_url

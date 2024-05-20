@@ -19,8 +19,10 @@ async def manage_bot(ctx):
         await ctx.send("This command must be used in a server")
         return
     #Create or get the instance of the bot
-    music_bot = bot_manager.get_bot(guild)
-    bot_manager.print_all_instances()
+    music_bot = bot_manager.get_bot_instance(guild)
+    if music_bot is None:
+        await ctx.send("There is no bot instance for this guild")
+        return
     await ctx.send(f"Bot instance for this guild: {music_bot}")
 
 @bot.command()
@@ -29,7 +31,7 @@ async def play_spotify(ctx, *, spotify_url):
     if not guild:
         await ctx.send("This command must be used in a server")
         return
-    music_bot = bot_manager.get_bot(guild)
+    music_bot = bot_manager.get_bot(bot, guild)
     await music_bot.add_to_queue(ctx, spotify_url)
     bot_manager.print_all_instances()
 @bot.command()
@@ -38,11 +40,43 @@ async def debug_queue(ctx):
     if not guild:
         await ctx.send("This command must be used in a server")
         return
-    music_bot = bot_manager.get_bot(guild)
+    music_bot = bot_manager.get_bot(bot,guild)
     await ctx.send(f"Queue: {music_bot.queue}")
 
 
-    
+@bot.event
+async def on_voice_state_update(member, before, after):
+    if member.bot and (member.voice is None or member.voice.channel is None):
+        guild = member.guild
+        music_bot = bot_manager.get_bot(bot, guild)
+        await music_bot.disconnect()
+        bot_manager.remove_bot(guild.id)  
+
+@bot.command()
+async def disconnect(ctx):
+    guild = ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot_instance(guild)
+    if music_bot is None:
+        await ctx.send("There is no bot instance for this guild")
+        return
+    await music_bot.disconnect()
+    bot_manager.remove_bot(guild.id)
+    await ctx.send("Disconnected from voice channel")
+
+@bot.command()
+async def skip(ctx):
+    guild = ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot_instance(guild)
+    if music_bot is None:
+        await ctx.send("There is no bot instance for this guild")
+        return
+    await music_bot.skip(ctx)
 
 @bot.event
 async def on_ready():
