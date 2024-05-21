@@ -17,16 +17,30 @@ class void_bot:
     
     def __repr__(self):
         return f"queue: {self.queue}, isPlaying: {self.isPlaying}, voice_client: {self.voice_client}, build: {self.guild}"
+    async def add_to_queue_youtube(self, ctx, query):
+        audio_file, video_title = await self.ytapi.download_audio_youtube(query, self.guild)
+        song = songobj(audio_file, None, None, ctx, video_title)
+        self.queue.append(song)
+        if len(self.queue) != 0:
+            await ctx.send(f"Added {query} to queue")
+        if not self.isPlaying:
+            await self.play_next(ctx)
     async def add_to_queue_query(self, ctx, query):
-        video_url, audio_file = await self.ytapi.download_track(query, self.guild)
+        video_url, audio_file, video_title = await self.ytapi.download_track(query, self.guild)
+        song = songobj(audio_file, None, None, ctx, video_title)
+        self.queue.append(song)
+        if len(self.queue) != 0:
+            await ctx.send(f"Added {video_url} to queue")
+        if not self.isPlaying:
+            await self.play_next(ctx)
     async def add_to_queue_spotify(self, ctx, spotify_url):
         track_id = spotify_url.split("/")[-1]
         infos = await self.spapi.get_track_info(track_id)
         artists = [artist['name'] for artist in infos['artists']]
         track_name = infos['name']
         query = f"{track_name} {' '.join(artists)}"
-        video_url, audio_file = await self.ytapi.download_track(query, self.guild)
-        song = songobj(audio_file, artists, track_name, ctx)
+        video_url, audio_file, video_title = await self.ytapi.download_track(query, self.guild)
+        song = songobj(audio_file, artists, track_name, ctx, video_title)
         self.queue.append(song)
         if len(self.queue) != 0:
             await ctx.send(f"Added {video_url} to queue")
@@ -42,7 +56,7 @@ class void_bot:
             return
         self.isPlaying = True
         song_popped = self.queue.pop(0)
-        await ctx.send(f"Now playing {song_popped.track_name} by {', '.join(song_popped.artists)}")
+        await ctx.send(f"Now playing {song_popped.video_title}")
         if not self.voice_client or not self.voice_client.is_connected():
             self.voice_client = await ctx.author.voice.channel.connect()
         self.voice_client.play(discord.FFmpegPCMAudio(song_popped.audio_file), after=lambda e: self.bot.loop.create_task(self.song_finished(ctx)))
@@ -74,5 +88,17 @@ class void_bot:
                         os.unlink(file_path)
                 except Exception as e:
                     print(f"Error deleting file {file_path}: {e}")
+    async def pause(self, ctx):
+        if self.voice_client.is_playing():
+            self.voice_client.pause()
+            await ctx.send("Playback paused.")
+        else:
+            await ctx.send("No audio is currently playing.")
+    async def resume(self, ctx):
+        if self.voice_client.is_paused():
+            self.voice_client.resume()
+            await ctx.send("Playback resumed.")
+        else:
+            await ctx.send("No audio is currently paused.")
 
 

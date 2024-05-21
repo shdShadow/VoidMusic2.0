@@ -25,6 +25,15 @@ async def manage_bot(ctx):
         return
     await ctx.send(f"Bot instance for this guild: {music_bot}")
 @bot.command()
+async def play_youtube(ctx, *, query):
+    guild = ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot(bot, guild)
+    stripped_text = query.split('>', 1)[-1].strip()
+    await music_bot.add_to_queue_youtube(ctx, stripped_text)
+@bot.command()
 async def play(ctx, *, query):
     guild = ctx.guild
     if not guild:
@@ -49,8 +58,19 @@ async def debug_queue(ctx):
         return
     music_bot = bot_manager.get_bot(bot,guild)
     await ctx.send(f"Queue: {music_bot.queue}")
-
-
+@bot.command()
+async def pause(ctx):
+    guild= ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot_instance(guild)
+    if music_bot is None:
+        await ctx.send("There is no bot instance for this guild")
+        return
+    await music_bot.pause(ctx)
+    await ctx.send("Playback paused")
+    
 @bot.event
 async def on_voice_state_update(member, before, after):
     if member.bot and (member.voice is None or member.voice.channel is None):
@@ -84,7 +104,17 @@ async def skip(ctx):
         await ctx.send("There is no bot instance for this guild")
         return
     await music_bot.skip(ctx)
-
+@bot.command()
+async def resume(ctx):
+    guild = ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot_instance(guild)
+    if music_bot is None:
+        await ctx.send("There is no bot instance for this guild")
+        return
+    await music_bot.resume(ctx)
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
