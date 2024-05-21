@@ -24,7 +24,15 @@ async def manage_bot(ctx):
         await ctx.send("There is no bot instance for this guild")
         return
     await ctx.send(f"Bot instance for this guild: {music_bot}")
-
+@bot.command()
+async def play(ctx, *, query):
+    guild = ctx.guild
+    if not guild:
+        await ctx.send("This command must be used in a server")
+        return
+    music_bot = bot_manager.get_bot(bot, guild)
+    stripped_text = query.split('>', 1)[-1].strip()
+    await music_bot.add_to_queue_query(ctx, stripped_text)
 @bot.command()
 async def play_spotify(ctx, *, spotify_url):
     guild = ctx.guild
@@ -32,8 +40,7 @@ async def play_spotify(ctx, *, spotify_url):
         await ctx.send("This command must be used in a server")
         return
     music_bot = bot_manager.get_bot(bot, guild)
-    await music_bot.add_to_queue(ctx, spotify_url)
-    bot_manager.print_all_instances()
+    await music_bot.add_to_queue_spotify(ctx, spotify_url)
 @bot.command()
 async def debug_queue(ctx):
     guild = ctx.guild
