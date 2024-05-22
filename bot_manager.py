@@ -18,4 +18,11 @@ class bot_manager:
         if guild.id not in self.bots:
             return None
         return self.bots[guild.id]
+    def get_bot_statuses(self):
+        return [{
+            "guild_id": bot.guild.id,
+            "guild_name": bot.guild.name,
+            "isPlaying": bot.isPlaying,
+            "current_track": bot.current_track
+        } for bot in self.bots.values()]
 

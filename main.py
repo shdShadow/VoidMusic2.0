@@ -6,12 +6,35 @@ from bot_manager import bot_manager
 import secret
 from discord.ext import commands
 import json
+from taipy import Gui
 
 intents = discord.Intents.default()
 intents.voice_states = True
 spotify_api = spotify_api()
 bot = commands.Bot(command_prefix='$', intents=intents)
 bot_manager = bot_manager()
+def update_data():
+    data = {
+        "guild": [bot.guild.name for bot in bot_manager.bots.values()],
+        "guild_id": [bot.guild.id for bot in bot_manager.bots.values()],
+        "isPlaying": [bot.isPlaying for bot in bot_manager.bots.values()],
+    }
+    return data
+
+page = """
+# Bot Dashboard
+
+This dashboard shows the current running bot instances.
+
+| Guild Name | Guild ID | Status | Current Track |
+| ---------- | -------- | ------ | ------------- |
+{% for name, id, status, track in zip(data.guild, data.guild_id, data.isPlaying) %}
+| {{ name }} | {{ id }} | {{ status }} |
+{% endfor %}
+"""
+
+# Initialize Taipy GUI with dynamic data
+gui = Gui(page, update_data)
 @bot.command()
 async def manage_bot(ctx):
     guild = ctx.guild
@@ -150,3 +173,4 @@ async def on_ready():
 #
 bot.run(secret.BOT_TOKEN)
 #
+

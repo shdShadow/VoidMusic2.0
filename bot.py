@@ -100,5 +100,9 @@ class void_bot:
             await ctx.send("Playback resumed.")
         else:
             await ctx.send("No audio is currently paused.")
+    def get_status(self):
+        if self.voice_client and self.voice_client.is_connected():
+            return "Connected"
+        return "Disconnected"
 
 
