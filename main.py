@@ -1,4 +1,5 @@
 from re import split
+import threading
 import discord
 from spotify import spotify_api
 from youtube import youtube_api
@@ -7,34 +8,15 @@ import secret
 from discord.ext import commands
 import json
 from taipy import Gui
-
+from flask import Flask, render_template, jsonify, url_for
+import asyncio
+import os
 intents = discord.Intents.default()
 intents.voice_states = True
 spotify_api = spotify_api()
 bot = commands.Bot(command_prefix='$', intents=intents)
 bot_manager = bot_manager()
-def update_data():
-    data = {
-        "guild": [bot.guild.name for bot in bot_manager.bots.values()],
-        "guild_id": [bot.guild.id for bot in bot_manager.bots.values()],
-        "isPlaying": [bot.isPlaying for bot in bot_manager.bots.values()],
-    }
-    return data
 
-page = """
-# Bot Dashboard
-
-This dashboard shows the current running bot instances.
-
-| Guild Name | Guild ID | Status | Current Track |
-| ---------- | -------- | ------ | ------------- |
-{% for name, id, status, track in zip(data.guild, data.guild_id, data.isPlaying) %}
-| {{ name }} | {{ id }} | {{ status }} |
-{% endfor %}
-"""
-
-# Initialize Taipy GUI with dynamic data
-gui = Gui(page, update_data)
 @bot.command()
 async def manage_bot(ctx):
     guild = ctx.guild
@@ -171,6 +153,57 @@ async def on_ready():
 #async def on_ready():
 #    print(f'Logged in as {bot.user}')
 #
-bot.run(secret.BOT_TOKEN)
-#
+#given the bot list, extract guild, guild.id and isPLaying and create a table
+
+app = Flask(__name__)
+
+data = {
+    "columns": ["Guild", "Guild ID", "Is Playing", "Logs"],
+    "rows": []
+}
+
+def update_data(bot_manager):
+    global data
+    bots_list = bot_manager.bots.values()
+    data["rows"] = [
+        {
+            "Guild": bot.guild.name,
+            "Guild ID": bot.guild.id,
+            "Playing": "Playing" if bot.isPlaying else "Stopped",
+            "Logs": url_for('view_logs', guild_id=bot.guild.id),
+        }
+        for bot in bots_list
+    ]
+
+@app.route('/')
+def index():
+    update_data(bot_manager)
+    return render_template('index.html', data=data)
+
+@app.route('/data')
+def get_data():
+    update_data()
+    return jsonify(data)
+@app.route('/logs/<int:guild_id>')
+def view_logs(guild_id):
+    log_file = f'logs/bot_{guild_id}.log'
+    if os.path.exists(log_file):
+        with open(log_file, 'r') as file:
+            logs = file.read()
+        return f'<pre>{logs}</pre>'
+    else:
+        return 'No logs available for this bot.', 404
+# Run Flask app in a separate thread
+def run_flask():
+    app.run(host='0.0.0.0', port=5000)
+
+# Start the Flask app and the Discord bot
+def main():
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+
+    asyncio.run(bot.start(secret.BOT_TOKEN))
+
+if __name__ == "__main__":
+    main()
 
